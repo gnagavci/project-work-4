@@ -329,14 +329,14 @@ function CreateSimulation() {
           <button
             type="button"
             onClick={() => navigate('/')}
-            className="btn-secondary"
+            className="btn btn-secondary"
             disabled={submitting}
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="btn-primary"
+            className="btn btn-primary"
             disabled={submitting}
           >
             {submitting ? 'Creating...' : 'Create Simulation'}

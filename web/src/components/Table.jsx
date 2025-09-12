@@ -24,7 +24,8 @@ function Table({ simulations }) {
   if (simulations.length === 0) {
     return (
       <div className="empty-state">
-        <p>No simulations found.</p>
+        <h3>No simulations found</h3>
+        <p>Create your first simulation to get started!</p>
       </div>
     );
   }

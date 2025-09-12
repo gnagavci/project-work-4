@@ -8,7 +8,7 @@ function Header() {
     <header className="header">
       <div className="container">
         <div className="header-content">
-          <h1 className="logo">Simulation Dashboard</h1>
+          <h1 className="logo" style={{ fontStyle: 'italic' }}>Agentarium</h1>
           <nav className="nav">
             <Link 
               to="/" 
