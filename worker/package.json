@@ -1,0 +1,11 @@
+{
+  "name": "simulation-worker",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "src/worker.js",
+  "dependencies": {
+    "mysql2": "^3.6.5",
+    "amqplib": "^0.10.3",
+    "dotenv": "^16.3.1"
+  }
+}
