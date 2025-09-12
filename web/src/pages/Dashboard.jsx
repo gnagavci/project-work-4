@@ -9,11 +9,12 @@ const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3002';
 function Dashboard() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [simulations, setSimulations] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [searchInput, setSearchInput] = useState(searchParams.get('q') || '');
   const debounceRef = useRef(null);
   const intervalRef = useRef(null);
+  const isInitialLoad = useRef(true);
 
   // Current filter state
   const currentPage = parseInt(searchParams.get('page')) || 1;
@@ -36,13 +37,15 @@ function Dashboard() {
     // Reset to page 1 when filters change (except when updating page itself)
     if (!updates.hasOwnProperty('page')) {
       newParams.set('page', '1');
+      // Show loading for filter changes
+      isInitialLoad.current = true;
+      setInitialLoading(true);
     }
     setSearchParams(newParams);
   };
 
   const fetchSimulations = async (signal) => {
     try {
-      setLoading(true);
       const params = new URLSearchParams({
         page: currentPage,
         limit: currentLimit,
@@ -65,7 +68,10 @@ function Dashboard() {
         console.error('Error fetching simulations:', error);
       }
     } finally {
-      setLoading(false);
+      if (isInitialLoad.current) {
+        setInitialLoading(false);
+        isInitialLoad.current = false;
+      }
     }
   };
 
@@ -76,6 +82,8 @@ function Dashboard() {
       clearTimeout(debounceRef.current);
     }
     debounceRef.current = setTimeout(() => {
+      isInitialLoad.current = true;
+      setInitialLoading(true);
       updateSearchParams({ q: value });
     }, 300);
   };
@@ -196,7 +204,7 @@ function Dashboard() {
         </div>
       </div>
 
-      {loading && <div className="loading">Loading...</div>}
+      {initialLoading && simulations.length === 0 && <div className="loading">Loading...</div>}
       
       <Table simulations={simulations} />
       
