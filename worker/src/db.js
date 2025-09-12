@@ -12,6 +12,7 @@ export async function getPool() {
       database: process.env.MYSQL_DB,
       waitForConnections: true,
       connectionLimit: 10,
+      namedPlaceholders: true,
       queueLimit: 0
     });
   }
