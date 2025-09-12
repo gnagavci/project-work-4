@@ -7,7 +7,7 @@ import { publishToQueue } from './mq.js';
 dotenv.config();
 
 const app = express();
-const port = 3000;
+const port = 3002;
 
 app.use(cors({
   origin: process.env.CORS_ORIGIN || 'http://localhost:5173'
@@ -104,15 +104,17 @@ app.get('/api/simulations', async (req, res) => {
     } = req.query;
     
     const pool = await getPool();
-    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const offset = (pageNum - 1) * limitNum;
     
     // Build WHERE clause
     let whereConditions = [];
     let queryParams = [];
     
     if (q) {
-      whereConditions.push('LOWER(name) LIKE CONCAT(\'%\', LOWER(?), \'%\')');
-      queryParams.push(q);
+      whereConditions.push('LOWER(name) LIKE ?');
+      queryParams.push(`%${q.toLowerCase()}%`);
     }
     
     if (status) {
@@ -127,7 +129,6 @@ app.get('/api/simulations', async (req, res) => {
     
     const whereClause = whereConditions.length > 0 ? 'WHERE ' + whereConditions.join(' AND ') : '';
     const orderClause = `ORDER BY ${sort} ${order.toUpperCase()}`;
-    const limitClause = `LIMIT ? OFFSET ?`;
     
     // Get total count
     const countQuery = `SELECT COUNT(*) as total FROM simulations ${whereClause}`;
@@ -137,9 +138,9 @@ app.get('/api/simulations', async (req, res) => {
     // Get paginated results
     const dataQuery = `
       SELECT id, name, behavior, runs, agent_count, status, created_at, updated_at, result 
-      FROM simulations ${whereClause} ${orderClause} ${limitClause}
+      FROM simulations ${whereClause} ${orderClause} LIMIT ${limitNum} OFFSET ${offset}
     `;
-    const [rows] = await pool.execute(dataQuery, [...queryParams, parseInt(limit), offset]);
+    const [rows] = await pool.execute(dataQuery, queryParams);
     
     // Convert to camelCase and parse JSON
     const items = rows.map(row => {
@@ -152,8 +153,8 @@ app.get('/api/simulations', async (req, res) => {
     
     res.json({
       items,
-      page: parseInt(page),
-      limit: parseInt(limit),
+      page: pageNum,
+      limit: limitNum,
       total
     });
   } catch (error) {
