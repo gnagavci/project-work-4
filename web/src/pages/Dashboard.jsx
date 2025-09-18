@@ -1,22 +1,27 @@
+// Dashboard page component for viewing and filtering simulations
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Table from '../components/Table.jsx';
 import Pagination from '../components/Pagination.jsx';
 
-
+// API endpoint configuration from environment
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3002';
 
+// Main dashboard component with filtering and real-time updates
 function Dashboard() {
+  // URL-based state management for filters and pagination
   const [searchParams, setSearchParams] = useSearchParams();
+  // Component state for simulations data and UI
   const [simulations, setSimulations] = useState([]);
   const [initialLoading, setInitialLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [searchInput, setSearchInput] = useState(searchParams.get('q') || '');
+  // Refs for managing timers and loading states
   const debounceRef = useRef(null);
   const intervalRef = useRef(null);
   const isInitialLoad = useRef(true);
 
-  // Current filter state
+  // Extract current filter values from URL parameters
   const currentPage = parseInt(searchParams.get('page')) || 1;
   const currentLimit = parseInt(searchParams.get('limit')) || 10;
   const currentStatus = searchParams.get('status') || '';
@@ -25,8 +30,10 @@ function Dashboard() {
   const currentOrder = searchParams.get('order') || 'desc';
   const currentQ = searchParams.get('q') || '';
 
+  // Update URL parameters with new filter values
   const updateSearchParams = (updates) => {
     const newParams = new URLSearchParams(searchParams);
+    // Apply parameter updates or remove empty values
     Object.entries(updates).forEach(([key, value]) => {
       if (value) {
         newParams.set(key, value);
@@ -34,18 +41,20 @@ function Dashboard() {
         newParams.delete(key);
       }
     });
-    // Reset to page 1 when filters change (except when updating page itself)
+    // Reset pagination when filters change
     if (!updates.hasOwnProperty('page')) {
       newParams.set('page', '1');
-      // Show loading for filter changes
+      // Show loading state for filter changes
       isInitialLoad.current = true;
       setInitialLoading(true);
     }
     setSearchParams(newParams);
   };
 
+  // Fetch simulations from API with current filter parameters
   const fetchSimulations = async (signal) => {
     try {
+      // Build query parameters from current state
       const params = new URLSearchParams({
         page: currentPage,
         limit: currentLimit,
@@ -53,10 +62,12 @@ function Dashboard() {
         order: currentOrder
       });
 
+      // Add optional filter parameters
       if (currentQ) params.append('q', currentQ);
       if (currentStatus) params.append('status', currentStatus);
       if (currentBehavior) params.append('behavior', currentBehavior);
 
+      // Make API request and update state
       const response = await fetch(`${API_BASE}/api/simulations?${params}`, { signal });
       if (response.ok) {
         const data = await response.json();
@@ -75,12 +86,14 @@ function Dashboard() {
     }
   };
 
-  // Debounced search
+  // Handle search input with debouncing to prevent excessive API calls
   const handleSearchChange = (value) => {
     setSearchInput(value);
+    // Clear existing debounce timer
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
+    // Set new debounce timer for 300ms delay
     debounceRef.current = setTimeout(() => {
       isInitialLoad.current = true;
       setInitialLoading(true);
@@ -88,14 +101,17 @@ function Dashboard() {
     }, 300);
   };
 
-  // Auto-refresh with visibility API
+  // Set up automatic data fetching and real-time updates
   useEffect(() => {
     const controller = new AbortController();
-    
+
+    // Initial data fetch
     fetchSimulations(controller.signal);
-    
+
+    // Start polling for real-time updates
     const startPolling = () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
+      // Poll every 2 seconds when page is visible
       intervalRef.current = setInterval(() => {
         if (!document.hidden) {
           fetchSimulations(controller.signal);
@@ -103,6 +119,7 @@ function Dashboard() {
       }, 2000);
     };
 
+    // Stop polling when component unmounts or page becomes hidden
     const stopPolling = () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -112,6 +129,7 @@ function Dashboard() {
 
     startPolling();
 
+    // Handle browser tab visibility changes for efficient polling
     const handleVisibilityChange = () => {
       if (document.hidden) {
         stopPolling();
@@ -134,7 +152,9 @@ function Dashboard() {
     <div className="dashboard">
       <div className="dashboard-header">
         <h1>Simulation Dashboard</h1>
+        {/* Filter and search controls */}
         <div className="dashboard-controls">
+          {/* Search input with real-time filtering */}
           <div className="control-group">
             <input
               type="text"
@@ -145,6 +165,7 @@ function Dashboard() {
             />
           </div>
 
+          {/* Status filter dropdown */}
           <div className="control-group">
             <label>Status:</label>
             <select
@@ -204,10 +225,13 @@ function Dashboard() {
         </div>
       </div>
 
+      {/* Loading indicator for initial page load */}
       {initialLoading && simulations.length === 0 && <div className="loading">Loading...</div>}
-      
+
+      {/* Simulations data table */}
       <Table simulations={simulations} />
-      
+
+      {/* Pagination controls */}
       <Pagination
         currentPage={currentPage}
         totalItems={total}

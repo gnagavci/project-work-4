@@ -1,10 +1,14 @@
+// Form component for creating new simulation requests
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+// API endpoint configuration from environment
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3002';
 
+// Main form component for simulation creation
 function CreateSimulation() {
   const navigate = useNavigate();
+  // Form state with default simulation parameters
   const [formData, setFormData] = useState({
     name: '',
     behavior: 'Random',
@@ -21,25 +25,29 @@ function CreateSimulation() {
     agentSize: 'Medium',
     simulationMode: 'Real-time'
   });
-  
+
+  // Component state for form validation and UI control
   const [errors, setErrors] = useState({});
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
+  // Handle form input changes with error clearing
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    
-    // Clear error when user starts typing
+
+    // Clear field-specific error when user modifies input
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
   };
 
+  // Validate all form fields and return validation status
   const validateForm = () => {
     const newErrors = {};
-    
+
+    // Validate required fields
     if (!formData.name.trim()) {
       newErrors.name = 'Name is required';
     }
@@ -56,7 +64,7 @@ function CreateSimulation() {
       newErrors.agentCount = 'Agent count must be at least 1';
     }
 
-    // Validate numeric fields
+    // Validate that numeric fields contain valid numbers
     const numericFields = ['seed', 'speed', 'cohesion', 'separation', 'alignment', 'noise', 'steps'];
     numericFields.forEach(field => {
       if (formData[field] !== '' && isNaN(Number(formData[field]))) {
@@ -64,7 +72,7 @@ function CreateSimulation() {
       }
     });
 
-    // Validate ranges for specific fields
+    // Validate parameter ranges for simulation physics
     if (formData.speed && (formData.speed < 0.1 || formData.speed > 10)) {
       newErrors.speed = 'Speed must be between 0.1 and 10';
     }
@@ -88,18 +96,21 @@ function CreateSimulation() {
     return Object.keys(newErrors).length === 0;
   };
 
+  // Handle form submission with validation and API call
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
+    // Stop submission if validation fails
     if (!validateForm()) {
       return;
     }
 
+    // Set loading state and clear previous messages
     setSubmitting(true);
     setSuccessMessage('');
 
     try {
-      // Prepare payload with proper types
+      // Build API payload with type conversion
       const payload = {
         name: formData.name.trim(),
         behavior: formData.behavior,
@@ -107,7 +118,7 @@ function CreateSimulation() {
         agentCount: parseInt(formData.agentCount)
       };
 
-      // Add optional fields if provided
+      // Include optional advanced parameters if specified
       if (formData.seed) payload.seed = parseInt(formData.seed);
       if (formData.speed) payload.speed = parseFloat(formData.speed);
       if (formData.cohesion) payload.cohesion = parseFloat(formData.cohesion);
@@ -116,6 +127,7 @@ function CreateSimulation() {
       if (formData.noise) payload.noise = parseFloat(formData.noise);
       if (formData.steps) payload.steps = parseInt(formData.steps);
 
+      // Send simulation creation request to API
       const response = await fetch(`${API_BASE}/api/simulations`, {
         method: 'POST',
         headers: {
@@ -124,8 +136,10 @@ function CreateSimulation() {
         body: JSON.stringify(payload),
       });
 
+      // Handle successful creation or display errors
       if (response.ok) {
         setSuccessMessage('Simulation created successfully! Redirecting to dashboard...');
+        // Navigate back to dashboard after brief delay
         setTimeout(() => {
           navigate('/?highlight=' + Date.now());
         }, 1500);
@@ -144,10 +158,12 @@ function CreateSimulation() {
     <div className="create-simulation">
       <h1>Create New Simulation</h1>
 
+      {/* Success message display */}
       {successMessage && <div className="success-message">{successMessage}</div>}
 
+      {/* Main simulation configuration form */}
       <form onSubmit={handleSubmit} className="simulation-form">
-        {/* Basics Section */}
+        {/* Core simulation parameters section */}
         <section className="form-section">
           <h2>Basic Parameters</h2>
           
@@ -285,7 +301,7 @@ function CreateSimulation() {
           </div>
         </section>
 
-        {/* Randomization Section */}
+        {/* Random seed and simulation duration controls */}
         <section className="form-section">
           <h2>Randomization & Duration</h2>
           
@@ -328,7 +344,7 @@ function CreateSimulation() {
           </div>
         </section>
 
-        {/* Advanced Parameters Section */}
+        {/* Collapsible advanced physics parameters section */}
         <section className="form-section">
           <h2>
             <button
@@ -477,6 +493,7 @@ function CreateSimulation() {
 
         {errors.submit && <div className="error-message">{errors.submit}</div>}
 
+        {/* Form action buttons */}
         <div className="form-actions">
           <button
             type="button"
